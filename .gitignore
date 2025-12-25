@@ -11,6 +11,7 @@ wheels/
 
 # Keys and secrets
 .env
+config.local.json
 
 # backup filse
 backup/

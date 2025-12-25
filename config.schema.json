@@ -1,0 +1,114 @@
+// ============================================================
+// LLM Council 配置文件 Schema
+// ============================================================
+//
+// 这是一个 JSON Schema 文件，用于验证 config.json 的格式是否正确。
+//
+// 使用方法：
+// - 在 VS Code 中安装 "JSON Schema" 扩展后，编辑 config.json 时会获得自动补全和验证
+// - 可以使用命令行工具如 ajv-cli 来验证配置文件
+//
+// 说明：
+// - $schema: 使用的 JSON Schema 规范版本
+// - required: 必须包含的字段
+// - patternProperties: 使用正则表达式匹配的动态属性名
+//   - "^[a-z_]+$" 匹配只包含小写字母和下划线的 provider 名称
+// ============================================================
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LLM Council Configuration",
+  "type": "object",
+  "required": ["version", "providers", "storage"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration version for migration purposes"
+    },
+    "providers": {
+      "type": "object",
+      "description": "LLM provider configurations",
+      "patternProperties": {
+        "^[a-z_]+$": {
+          "type": "object",
+          "required": ["enabled", "api_url", "api_key_env", "models"],
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether this provider is active"
+            },
+            "api_url": {
+              "type": "string",
+              "format": "uri",
+              "description": "API endpoint URL"
+            },
+            "api_key_env": {
+              "type": "string",
+              "description": "Environment variable name containing the API key"
+            },
+            "models": {
+              "type": "object",
+              "required": ["council", "chairman"],
+              "properties": {
+                "council": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "List of model identifiers for the council"
+                },
+                "chairman": {
+                  "type": "string",
+                  "description": "Model identifier for the chairman"
+                },
+                "title_generator": {
+                  "type": "string",
+                  "description": "Fast model for generating conversation titles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "required": ["type", "data_dir"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["json", "database"],
+          "description": "Storage backend type"
+        },
+        "data_dir": {
+          "type": "string",
+          "description": "Directory path for conversation storage"
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "Server host address"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Server port number"
+        },
+        "cors_origins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": "Allowed CORS origins"
+        }
+      }
+    }
+  }
+}

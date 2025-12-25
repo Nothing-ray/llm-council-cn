@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "providers": {
+    "openrouter": {
+      "enabled": true,
+      "api_url": "https://openrouter.ai/api/v1/chat/completions",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "models": {
+        "council": [
+          "openai/gpt-5.1",
+          "google/gemini-3-pro-preview",
+          "anthropic/claude-sonnet-4.5",
+          "x-ai/grok-4"
+        ],
+        "chairman": "google/gemini-3-pro-preview",
+        "title_generator": "google/gemini-2.5-flash"
+      }
+    }
+  },
+  "storage": {
+    "type": "json",
+    "data_dir": "data/conversations"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8001,
+    "cors_origins": [
+      "http://localhost:5173",
+      "http://localhost:3000"
+    ]
+  }
+}
