@@ -1,8 +1,32 @@
 """3-stage LLM Council orchestration."""
 
+import os
 from typing import List, Dict, Any, Tuple
-from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, TITLE_GENERATOR_MODEL
+from .providers import get_provider
+from .config import (
+    COUNCIL_MODELS, CHAIRMAN_MODEL, TITLE_GENERATOR_MODEL,
+    get_active_provider, get_provider_config
+)
+
+
+def _get_active_provider_functions() -> Dict[str, Any]:
+    """Get the currently active provider's function set.
+
+    Returns:
+        Dict with provider name, api_url, api_key, and query functions
+    """
+    provider_name = get_active_provider()
+    provider_config = get_provider_config(provider_name)
+
+    provider_fns = get_provider(provider_name)
+
+    return {
+        "name": provider_name,
+        "api_url": provider_config["api_url"],
+        "api_key": os.getenv(provider_config["api_key_env"]),
+        "query_model": provider_fns["query_model"],
+        "query_models_parallel": provider_fns["query_models_parallel"]
+    }
 
 
 async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
@@ -17,8 +41,16 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
     """
     messages = [{"role": "user", "content": user_query}]
 
-    # Query all models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    # Get the active provider and its configuration
+    provider = _get_active_provider_functions()
+
+    # Query all models in parallel using the active provider
+    responses = await provider["query_models_parallel"](
+        models=COUNCIL_MODELS,
+        messages=messages,
+        api_url=provider["api_url"],
+        api_key=provider["api_key"]
+    )
 
     # Format results
     stage1_results = []
@@ -94,8 +126,16 @@ Now provide your evaluation and ranking:"""
 
     messages = [{"role": "user", "content": ranking_prompt}]
 
+    # Get the active provider and its configuration
+    provider = _get_active_provider_functions()
+
     # Get rankings from all council models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    responses = await provider["query_models_parallel"](
+        models=COUNCIL_MODELS,
+        messages=messages,
+        api_url=provider["api_url"],
+        api_key=provider["api_key"]
+    )
 
     # Format results
     stage2_results = []
@@ -158,8 +198,16 @@ Provide a clear, well-reasoned final answer that represents the council's collec
 
     messages = [{"role": "user", "content": chairman_prompt}]
 
+    # Get the active provider and its configuration
+    provider = _get_active_provider_functions()
+
     # Query the chairman model
-    response = await query_model(CHAIRMAN_MODEL, messages)
+    response = await provider["query_model"](
+        model=CHAIRMAN_MODEL,
+        messages=messages,
+        api_url=provider["api_url"],
+        api_key=provider["api_key"]
+    )
 
     if response is None:
         # Fallback if chairman fails
@@ -274,8 +322,17 @@ Title:"""
 
     messages = [{"role": "user", "content": title_prompt}]
 
+    # Get the active provider and its configuration
+    provider = _get_active_provider_functions()
+
     # Use configured title generator model (fast and cheap)
-    response = await query_model(TITLE_GENERATOR_MODEL, messages, timeout=30.0)
+    response = await provider["query_model"](
+        model=TITLE_GENERATOR_MODEL,
+        messages=messages,
+        api_url=provider["api_url"],
+        api_key=provider["api_key"],
+        timeout=30.0
+    )
 
     if response is None:
         # Fallback to a generic title

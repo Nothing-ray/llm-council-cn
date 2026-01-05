@@ -65,7 +65,8 @@ def _find_config_file() -> Optional[Path]:
     Priority:
     1. Environment variable LLM_COUNCIL_CONFIG_PATH
     2. config.local.json (for local development)
-    3. config.json (default)
+    3. config/config.json (config subdirectory)
+    4. config.json (project root)
 
     Returns:
         Path object if found, None otherwise
@@ -86,7 +87,12 @@ def _find_config_file() -> Optional[Path]:
     if local_config.exists():
         return local_config
 
-    # Check for default config
+    # Check for config subdirectory
+    subdirectory_config = config_dir / "config" / "config.json"
+    if subdirectory_config.exists():
+        return subdirectory_config
+
+    # Check for default config in project root
     default_config = config_dir / "config.json"
     if default_config.exists():
         return default_config
@@ -229,6 +235,42 @@ def get_storage_config() -> Dict[str, Any]:
         Dict with 'type' and 'data_dir'
     """
     return _config.get("storage", {})
+
+
+def get_active_provider() -> str:
+    """Get the currently active provider name.
+
+    Returns:
+        Provider name (e.g., 'openrouter', 'siliconflow')
+    """
+    return _config.get("active_provider", "openrouter")
+
+
+def get_provider_config(provider_name: str = None) -> Dict[str, Any]:
+    """Get configuration for a specific provider.
+
+    Args:
+        provider_name: Name of the provider (e.g., 'openrouter', 'siliconflow').
+                     If None, returns the active provider's configuration.
+
+    Returns:
+        Provider configuration dict with 'api_url', 'api_key_env', 'models', etc.
+
+    Raises:
+        ValueError: If provider not found or disabled
+    """
+    if provider_name is None:
+        provider_name = get_active_provider()
+
+    provider = _config.get("providers", {}).get(provider_name)
+
+    if not provider:
+        raise ValueError(f"Provider '{provider_name}' not found in configuration")
+
+    if not provider.get("enabled", False):
+        raise ValueError(f"Provider '{provider_name}' is disabled")
+
+    return provider
 
 
 def reload_config() -> None:

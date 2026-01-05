@@ -2,7 +2,13 @@
 
 ![llmcouncil](header.jpg)
 
-The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, eg.c), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses OpenRouter to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
+---
+
+[English](README.md) | [中文](README.zh.md)
+
+---
+
+The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, etc.), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses multiple LLM providers to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
 
 In a bit more detail, here is what happens when you submit a query:
 
@@ -32,30 +38,66 @@ npm install
 cd ..
 ```
 
-### 2. Configure API Key
+### 2. Configure API Keys
 
 Create a `.env` file in the project root:
 
 ```bash
-OPENROUTER_API_KEY=sk-or-v1-...
+# OpenRouter API Key
+OPENROUTER_API_KEY=your-api-key-here
+
+# SiliconFlow API Key (optional, for using SiliconFlow provider)
+SILICONFLOW_API_KEY=your-api-key-here
 ```
 
-Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purchase the credits you need, or sign up for automatic top up.
+Get your API keys:
+- [OpenRouter](https://openrouter.ai/) - Make sure to purchase the credits you need, or sign up for automatic top up
+- [SiliconFlow](https://siliconflow.cn/) - Register and get your API key
 
 ### 3. Configure Models (Optional)
 
-Edit `backend/config.py` to customize the council:
+Edit `config/config.json` to customize the council and select your active provider:
 
-```python
-COUNCIL_MODELS = [
-    "openai/gpt-5.1",
-    "google/gemini-3-pro-preview",
-    "anthropic/claude-sonnet-4.5",
-    "x-ai/grok-4",
-]
-
-CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
+```json
+{
+  "active_provider": "openrouter",
+  "providers": {
+    "openrouter": {
+      "enabled": true,
+      "api_url": "https://openrouter.ai/api/v1/chat/completions",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "models": {
+        "council": [
+          "openai/gpt-4o",
+          "google/gemini-2.5-pro-preview-03-25",
+          "anthropic/claude-3-5-sonnet-20241022"
+        ],
+        "chairman": "google/gemini-2.5-pro-preview-03-25",
+        "title_generator": "google/gemini-2.5-flash"
+      }
+    },
+    "siliconflow": {
+      "enabled": true,
+      "api_url": "https://api.siliconflow.cn/v1/chat/completions",
+      "api_key_env": "SILICONFLOW_API_KEY",
+      "models": {
+        "council": [
+          "Qwen/Qwen2.5-72B-Instruct",
+          "deepseek-ai/DeepSeek-V3"
+        ],
+        "chairman": "Qwen/Qwen2.5-72B-Instruct",
+        "title_generator": "Qwen/Qwen2.5-7B-Instruct"
+      }
+    }
+  }
+}
 ```
+
+**Configuration options:**
+- `active_provider`: Which provider to use (e.g., `openrouter`, `siliconflow`)
+- `council`: List of models in the council
+- `chairman`: Model that synthesizes the final answer
+- `title_generator`: Model used for generating conversation titles
 
 ## Running the Application
 
@@ -81,7 +123,7 @@ Then open http://localhost:5173 in your browser.
 
 ## Tech Stack
 
-- **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
+- **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter/SiliconFlow API
 - **Frontend:** React + Vite, react-markdown for rendering
 - **Storage:** JSON files in `data/conversations/`
 - **Package Management:** uv for Python, npm for JavaScript
